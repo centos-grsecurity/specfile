@@ -2217,6 +2217,13 @@ fi
 %kernel_variant_files -k vmlinux %{with_kdump} kdump
 
 %changelog
+* Thu Sep 16 2011 Rudy Grigar <rudy.grigar@acquia.com> 2.6.32.46-1
+- refactor patch to .46 with grsecurity.
+- default to vanilla kernel.
+- add config-default (otherwise kernel compile errors out):
+   CONFIG_GRKERNSEC=y
+   CONFIG_GRKERNSEC_CUSTOM=y
+
 * Fri Nov 26 2010 Kyle McMartin <kyle@redhat.com> 2.6.32.26-175
 - netlink-make-nlmsg_find_attr-take-a-const-ptr.patch: quiet build warning
   the INET_DIAG fix caused.

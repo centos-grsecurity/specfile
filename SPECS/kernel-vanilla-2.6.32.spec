@@ -2218,7 +2218,8 @@ fi
 
 %changelog
 * Thu Sep 16 2011 Rudy Grigar <rudy.grigar@acquia.com> 2.6.32.46-1
-- refactor patch to .46 with grsecurity.
+- Linux 2.6.32.46
+- bundle grsecurity 2.2.2-2.6.32.46 patch.
 - default to vanilla kernel.
 - add config-default (otherwise kernel compile errors out):
    CONFIG_GRKERNSEC=y

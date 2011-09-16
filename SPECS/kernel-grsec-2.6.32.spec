@@ -251,11 +251,11 @@ BuildKernel() {
     %{__mkdir_p} $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include
 
     %{__cp} -a --parents arch/x86/include $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/
-    %{__cp} -a --parents include/generated/*.h $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
+    #%{__cp} -a --parents include/generated/*.h $RPM_BUILD_ROOT/lib/modules/$KernelVer/build
     pushd include > /dev/null
     %{__cp} -a acpi asm-generic config crypto drm keys linux math-emu media mtd net pcmcia rdma rxrpc scsi sound trace video xen $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include
     popd > /dev/null
-    %{__cp} -a include/generated/*.h $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/linux
+    #%{__cp} -a include/generated/*.h $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/linux
 
     %{__mkdir_p} $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/scripts
 
@@ -268,7 +268,7 @@ BuildKernel() {
     touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/.config
     touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/linux/version.h
     touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/linux/autoconf.h
-    touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/generated/autoconf.h
+    #touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/generated/autoconf.h
     touch -r $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/Makefile $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include/config/auto.conf
 
     # Move the development files out of the /lib/modules/ file system.

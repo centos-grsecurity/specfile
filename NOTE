@@ -1,0 +1,18 @@
+NOTE: Currently this build only works on EL6.  EL5 builds fail with the
+following error, and will require a patch to fix the broken install.  It looks
+like make is trying to remove the *wrong* file, or a file that doesn't exist.
+
++ cd linux-2.6.32.x86_64
++ make ARCH=x86_64 INSTALL_HDR_PATH=/usr headers_install
+  CHK     include/linux/version.h
+make[1]: `scripts/unifdef' is up to date.
+  REMOVE  ipc.h
+rm: cannot remove `/usr/include/asm-generic/ipc.h': Permission denied
+make[2]: *** [/usr/include/asm-generic/.install] Error 1
+make[1]: *** [asm-generic] Error 2
+make: *** [headers_install] Error 2
+error: Bad exit status from /var/tmp/rpm-tmp.41434 (%install)
+RPM build errors:
+    Bad exit status from /var/tmp/rpm-tmp.41434 (%install)
+Child returncode was: 1
+

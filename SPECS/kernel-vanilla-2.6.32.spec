@@ -522,7 +522,7 @@ Obsoletes: kernel-smp
 #
 BuildRequires: module-init-tools, patch >= 2.5.4, bash >= 2.03, sh-utils, tar
 BuildRequires: bzip2, findutils, gzip, m4, perl, make >= 3.78, diffutils, gawk
-BuildRequires: gcc >= 3.4.2, binutils >= 2.12, redhat-rpm-config, gmp-devel
+BuildRequires: gcc >= 3.4.2, binutils >= 2.18, redhat-rpm-config, gmp-devel
 BuildRequires: net-tools
 BuildRequires: xmlto, asciidoc
 %if %{with_sparse}

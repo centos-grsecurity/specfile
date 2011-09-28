@@ -16,24 +16,24 @@
 
 Summary: A GNU collection of binary utilities
 Name: %{?cross}binutils%{?_with_debug:-debug}
-Version: 2.18.50.0.9
-Release: 8%{?dist}
+Version: 2.19.51.0.14
+Release: 34%{?dist}
 License: GPLv3+
 Group: Development/Tools
 URL: http://sources.redhat.com/binutils
 Source: ftp://ftp.kernel.org/pub/linux/devel/binutils/binutils-%{version}.tar.bz2
-Source2: binutils-2.18.50.0.9-output-format.sed
-Patch1: binutils-2.18.50.0.6-ltconfig-multilib.patch
-Patch2: binutils-2.18.50.0.6-ppc64-pie.patch
-Patch3: binutils-2.18.50.0.8-place-orphan.patch
-Patch4: binutils-2.18.50.0.6-ia64-lib64.patch
-Patch6: binutils-2.18.50.0.8-symbolic-envvar-revert.patch
-Patch7: binutils-2.18.50.0.6-version.patch
-Patch11: binutils-2.18.50.0.9-largefile.patch
-Patch12: binutils-2.18.50.0.9-set-long-long.patch
-Patch13: binutils-2.18.50.0.9-upstream.patch
-Patch14: binutils-2.18.50.0.9-linkonce-r-discard.patch
-Patch15: binutils-2.18.50.0.9-gcc_except_table.patch
+Source2: binutils-2.19.50.0.1-output-format.sed
+Patch01: binutils-2.19.51.0.10-libtool-lib64.patch
+Patch02: binutils-2.19.51.0.10-ppc64-pie.patch
+Patch03: binutils-2.19.50.0.1-ia64-lib64.patch
+Patch04: binutils-2.19.51.0.10-envvar-revert.patch
+Patch05: binutils-2.19.51.0.10-version.patch
+Patch06: binutils-2.19.51.0.10-set-long-long.patch
+Patch07: binutils-2.19.51.0.10-build-id.patch
+Patch09: binutils-2.19.51.0.11-moxie.patch
+Patch10: binutils-2.19.51.0.14-unique-is-global.patch
+Patch11: binutils-2.19.51.0.14-cxxfilt-java-doc.patch
+Patch12: binutils-2.19.51.0.14-cfi-sections.patch
 
 %if 0%{?_with_debug:1}
 # Define this if you want to skip the strip step and preserve debug info.
@@ -46,11 +46,11 @@ Patch15: binutils-2.18.50.0.9-gcc_except_table.patch
 %endif
 
 Buildroot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-BuildRequires: texinfo >= 4.0, dejagnu, gettext, flex, bison, zlib-devel
+BuildRequires: texinfo >= 4.0, gettext, flex, bison, zlib-devel
 # Required for: ld-bootstrap/bootstrap.exp bootstrap with --static
 # It should not be required for: ld-elf/elf.exp static {preinit,init,fini} array
 %if %{run_testsuite}
-BuildRequires: zlib-devel
+BuildRequires: dejagnu, zlib-static, glibc-static, sharutils
 %endif
 Conflicts: gcc-c++ < 4.0.0
 Requires(post): /sbin/install-info
@@ -72,10 +72,11 @@ assemblers), gprof (for displaying call graph profile data), ld (the
 GNU linker), nm (for listing symbols from object files), objcopy (for
 copying and translating object files), objdump (for displaying
 information from object files), ranlib (for generating an index for
-the contents of an archive), size (for listing the section sizes of an
-object or archive file), strings (for listing printable strings from
-files), strip (for discarding symbols), and addr2line (for converting
-addresses to file and line).
+the contents of an archive), readelf (for displaying detailed
+information about binary files), size (for listing the section sizes
+of an object or archive file), strings (for listing printable strings
+from files), strip (for discarding symbols), and addr2line (for
+converting addresses to file and line).
 
 %package devel
 Summary: BFD and opcodes static libraries and header files
@@ -93,21 +94,21 @@ to consider using libelf instead of BFD.
 
 %prep
 %setup -q -n binutils-%{version}
-%patch1 -p0 -b .ltconfig-multilib~
-%patch2 -p0 -b .ppc64-pie~
-%patch3 -p0 -b .place-orphan~
+%patch01 -p0 -b .libtool-lib64~
+%patch02 -p0 -b .ppc64-pie~
 %ifarch ia64
 %if "%{_lib}" == "lib64"
-%patch4 -p0 -b .ia64-lib64~
+%patch03 -p0 -b .ia64-lib64~
 %endif
 %endif
-%patch6 -p0 -b .symbolic-envvar-revert~
-%patch7 -p0 -b .version~
-%patch11 -p0 -b .largefile~
-%patch12 -p0 -b .set-long-long~
-%patch13 -p0 -b .upstream~
-%patch14 -p0 -b .linkonce-r-discard~
-%patch15 -p0 -b .gcc_except_table~
+%patch04 -p0 -b .envvar-revert~
+%patch05 -p0 -b .version~
+%patch06 -p0 -b .set-long-long~
+%patch07 -p0 -b .build-id~
+%patch09 -p0 -b .moxie~
+%patch10 -p0 -b .unique-is-global~
+%patch11 -p0 -b .cxxfilt-java-doc~
+%patch12 -p0 -b .cfi-sections~
 
 # We cannot run autotools as there is an exact requirement of autoconf-2.59.
 
@@ -137,7 +138,7 @@ echo target is %{binutils_target}
 export CFLAGS="$RPM_OPT_FLAGS"
 CARGS=
 
-case %{binutils_target} in i?86*|sparc*|ppc*|s390*)
+case %{binutils_target} in i?86*|sparc*|ppc*|s390*|sh*)
   CARGS="$CARGS --enable-64-bit-bfd"
   ;;
 esac
@@ -183,10 +184,17 @@ make %{_smp_mflags} tooldir=%{_prefix} info
 %if !%{run_testsuite}
 echo ====================TESTSUITE DISABLED=========================
 %else
-make -k check < /dev/null > check.log 2>&1 || :
+make -k check < /dev/null || :
 echo ====================TESTING=========================
-cat check.log
+cat {gas/testsuite/gas,ld/ld,binutils/binutils}.sum
 echo ====================TESTING END=====================
+for file in {gas/testsuite/gas,ld/ld,binutils/binutils}.{sum,log}
+do
+  ln $file binutils-%{_target_platform}-$(basename $file) || :
+done
+tar cjf binutils-%{_target_platform}.tar.bz2 binutils-%{_target_platform}-*.{sum,log}
+uuencode binutils-%{_target_platform}.tar.bz2 binutils-%{_target_platform}.tar.bz2
+rm -f binutils-%{_target_platform}.tar.bz2 binutils-%{_target_platform}-*.{sum,log}
 %endif
 
 %install
@@ -226,7 +234,7 @@ rm -f %{buildroot}%{_prefix}/%{_lib}/lib{bfd,opcodes}.la
 # Sanity check --enable-64-bit-bfd really works.
 grep '^#define BFD_ARCH_SIZE 64$' %{buildroot}%{_prefix}/include/bfd.h
 # Fix multilib conflicts of generated values by __WORDSIZE-based expressions.
-%ifarch %{ix86} x86_64 ppc ppc64 s390 s390x sparc sparc64
+%ifarch %{ix86} x86_64 ppc ppc64 s390 s390x sh3 sh4 sparc sparc64
 sed -i -e '/^#include "ansidecl.h"/{p;s~^.*$~#include <bits/wordsize.h>~;}' \
     -e 's/^#define BFD_DEFAULT_TARGET_SIZE \(32\|64\) *$/#define BFD_DEFAULT_TARGET_SIZE __WORDSIZE/' \
     -e 's/^#define BFD_HOST_64BIT_LONG [01] *$/#define BFD_HOST_64BIT_LONG (__WORDSIZE == 64)/' \
@@ -297,34 +305,51 @@ rm -rf %{buildroot}
 %if %{isnative}
 %post
 /sbin/ldconfig
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/as.info
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/binutils.info
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/gprof.info
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/ld.info
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/standards.info
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/configure.info
+# For --excludedocs:
+if [ -e %{_infodir}/binutils.info.gz ]
+then
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/as.info.gz
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/binutils.info.gz
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/gprof.info.gz
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/ld.info.gz
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/standards.info.gz
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/configure.info.gz
+fi
 exit 0
 
 %preun
-if [ $1 = 0 ] ;then
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/as.info
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/binutils.info
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/gprof.info
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/ld.info
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/standards.info
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/configure.info
+if [ $1 = 0 ]
+then
+  if [ -e %{_infodir}/binutils.info.gz ]
+  then
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/as.info.gz
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/binutils.info.gz
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/gprof.info.gz
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/ld.info.gz
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/standards.info.gz
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/configure.info.gz
+  fi
 fi
 exit 0
 
 %postun -p /sbin/ldconfig
 
 %post devel
-/sbin/install-info --info-dir=%{_infodir} %{_infodir}/bfd.info
+if [ -e %{_infodir}/bfd.info.gz ]
+then
+  /sbin/install-info --info-dir=%{_infodir} %{_infodir}/bfd.info.gz
+fi
+exit 0
 
 %preun devel
-if [ $1 = 0 ] ;then
-  /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/bfd.info
+if [ $1 = 0 ]
+then
+  if [ -e %{_infodir}/bfd.info.gz ]
+  then
+    /sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/bfd.info.gz
+  fi
 fi
+exit 0
 %endif # %{isnative}
 
 %files -f %{?cross}binutils.lang
@@ -351,8 +376,90 @@ fi
 %endif # %{isnative}
 
 %changelog
-* Mon Feb  2 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.18.50.0.9-8
+* Tue Oct 27 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.19.51.0.14-34
+- Fix rpm --excludedocs (BZ 515922).
+- Fix spurious scriplet errors by `exit 0'. (BZ 517979, Nick Clifton)
+
+* Thu Oct 15 2009 Jakub Jelinek <jakub@redhat.com> 2.19.51.0.14-33
+- Add .cfi_sections support.  (PR debug/40521)
+
+* Tue Sep 29 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.19.51.0.14-32
+- Remove spurious description of nonexistent --java switch for cxxfilt.
+
+* Thu Aug  6 2009 Jakub Jelinek <jakub@redhat.com> 2.19.51.0.14-31
+- Fix strip on objects with STB_GNU_UNIQUE symbols. (BZ 515700, PR binutils/10492)
+
+* Fri Jul 24 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.19.51.0.14-30
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_12_Mass_Rebuild
+
+* Wed Jul 22 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-28
+- Rebase sources on 2.19.51.0.14 tarball.  Gain fixes for PRs 10429 and 10433.
+
+* Wed Jul 22 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-28
+- Rebase sources on 2.19.51.0.13 tarball.  Remove redundant orphan section placement patch. (BZ 512937)
+
+* Tue Jul 14 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-27
+- Add patch to allow moxie target to build, and hence --enable-targets=all to work.
+
+* Tue Jul 14 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-26
+- Import orphan section placement patch from mainline.  (BZ 510384)
+
+* Tue Jul 14 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-25
+- Fix build-id patch to avoid memory corruption.  (BZ 501582)
+
+* Sat Jul 11 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.19.51.0.11-24
+- Provide uuencode output of the testsuite results.
+
+* Tue Jun 30 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.11-23
+- Rebase sources on the 2.19.51.0.11 tarball.
+
+* Mon Jun 22 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.10-22
+- Rebase sources on the 2.19.51.0.10 tarball.
+
+* Thu Jun 11 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-21
+- Do not attempt to set execute permission on non-regular files.  (BZ 503426)
+
+* Tue Jun  9 2009 Jakub Jelinek <jakub@redhat.com> 2.19.51.0.2-20
+- Fix .cfi_* skip over >= 64KB of code.  (PR gas/10255)
+
+* Wed May 27 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-19
+- Import fix for binutils PR #9938.  (BZ 500295)
+
+* Wed Apr 15 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-18
+- Update IBM Power 7 support patch to fix tlbilx opcode.  (BZ 494718)
+
+* Tue Mar 17 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-17
+- Add glibc-static to BuildRequires when running the testsuite.
+
+* Thu Mar 05 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-16
+- Add IBM Power7 support.  (BZ 487887)
+
+* Mon Mar 02 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-15
+- Add IFUNC support.  (BZ 465302)
+
+* Mon Feb 23 2009 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.19.51.0.2-14
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_11_Mass_Rebuild
+
+* Mon Feb 23 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.19.50.0.2-13
+- Rediff the symbolic-envvar-revert patch to comply with rpm patch --fuzz=0.
+
+* Thu Feb  5 2009 Nick Clifton <nickc@redhat.com> 2.19.51.0.2-12
+- Rebase sources on 2.19.51.0.2 tarball.  Remove linkonce-r-discard and 
+  gcc-expect-table patches.
+
+* Mon Feb  2 2009 Jan Kratochvil <jan.kratochvil@redhat.com> 2.19.50.0.1-11
 - Fix .eh_frame_hdr build also for .gcc_except_table LSDA refs (BZ 461675).
+
+* Fri Jan 23 2009 Nick Clifton <nickc@redhat.com> 2.19.50.0.1-10
+- Only require dejagnu if the testsuites are going to be run.  (BZ 481169)
+
+* Sat Nov 29 2008 Nick Clifton <nickc@redhat.com> 2.19.50.0.1-8
+- Add build-id patch to ensure that section contents are incorporated
+  into a build id.  (BZ 472152)
+
+* Fri Nov 21 2008 Nick Clifton <nickc@redhat.com> 2.19.50.0.1
+- Rebase sources on 2.19.50.0.1 tarball.  Update all patches, trimming
+  those that are no longer needed.
 
 * Thu Oct 30 2008 Jan Kratochvil <jan.kratochvil@redhat.com> 2.18.50.0.9-7
 - Fix %%{_prefix}/include/bfd.h on 32-bit hosts due the 64-bit BFD target

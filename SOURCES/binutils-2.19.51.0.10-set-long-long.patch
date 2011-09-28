@@ -1,0 +1,38 @@
+diff -rup ../binutils-2.19.51.0.10.orig/bfd/configure ./bfd/configure
+--- ../binutils-2.19.51.0.10.orig/bfd/configure	2009-06-22 16:16:08.000000000 +0100
++++ ./bfd/configure	2009-06-22 16:16:14.000000000 +0100
+@@ -13924,11 +13924,13 @@ if test "x${ac_cv_sizeof_long}" = "x8"; 
+   BFD_HOST_64BIT_LONG=1
+   test -n "${HOST_64BIT_TYPE}" || HOST_64BIT_TYPE="long"
+   test -n "${HOST_U_64BIT_TYPE}" || HOST_U_64BIT_TYPE="unsigned long"
+-elif test "x${ac_cv_sizeof_long_long}" = "x8"; then
++fi
++if test "x${ac_cv_sizeof_long_long}" = "x8"; then
+   BFD_HOST_64BIT_LONG_LONG=1
+   test -n "${HOST_64BIT_TYPE}" || HOST_64BIT_TYPE="long long"
+   test -n "${HOST_U_64BIT_TYPE}" || HOST_U_64BIT_TYPE="unsigned long long"
+-  if test "x${ac_cv_sizeof_void_p}" = "x8"; then
++  if test "x${ac_cv_sizeof_void_p}" = "x8" \
++          -a "x${ac_cv_sizeof_long}" != "x8"; then
+     BFD_HOSTPTR_T="unsigned long long"
+   fi
+ fi
+diff -rup ../binutils-2.19.51.0.10.orig/bfd/configure.in ./bfd/configure.in
+--- ../binutils-2.19.51.0.10.orig/bfd/configure.in	2009-06-22 16:16:08.000000000 +0100
++++ ./bfd/configure.in	2009-06-22 16:16:14.000000000 +0100
+@@ -172,11 +172,13 @@ if test "x${ac_cv_sizeof_long}" = "x8"; 
+   BFD_HOST_64BIT_LONG=1
+   test -n "${HOST_64BIT_TYPE}" || HOST_64BIT_TYPE="long"
+   test -n "${HOST_U_64BIT_TYPE}" || HOST_U_64BIT_TYPE="unsigned long"
+-elif test "x${ac_cv_sizeof_long_long}" = "x8"; then
++fi
++if test "x${ac_cv_sizeof_long_long}" = "x8"; then
+   BFD_HOST_64BIT_LONG_LONG=1
+   test -n "${HOST_64BIT_TYPE}" || HOST_64BIT_TYPE="long long"
+   test -n "${HOST_U_64BIT_TYPE}" || HOST_U_64BIT_TYPE="unsigned long long"
+-  if test "x${ac_cv_sizeof_void_p}" = "x8"; then
++  if test "x${ac_cv_sizeof_void_p}" = "x8" \
++          -a "x${ac_cv_sizeof_long}" != "x8"; then
+     BFD_HOSTPTR_T="unsigned long long"
+   fi
+ fi

@@ -1,0 +1,42 @@
+2009-08-06  Jakub Jelinek  <jakub@redhat.com>
+	    Alan Modra  <amodra@bigpond.net.au>
+
+	PR binutils/10492
+	* elf.c (sym_is_global): Return true even for BSF_GNU_UNIQUE
+	symbols.
+	* elf32-mips.c (mips_elf_sym_is_global): Likewise.
+	* elfn32-mips.c (mips_elf_sym_is_global): Likewise.
+
+--- bfd/elf.c.jj	2009-08-06 14:20:38.000000000 +0200
++++ bfd/elf.c	2009-08-06 14:41:06.000000000 +0200
+@@ -3084,7 +3084,7 @@ sym_is_global (bfd *abfd, asymbol *sym)
+   if (bed->elf_backend_sym_is_global)
+     return (*bed->elf_backend_sym_is_global) (abfd, sym);
+ 
+-  return ((sym->flags & (BSF_GLOBAL | BSF_WEAK)) != 0
++  return ((sym->flags & (BSF_GLOBAL | BSF_WEAK | BSF_GNU_UNIQUE)) != 0
+ 	  || bfd_is_und_section (bfd_get_section (sym))
+ 	  || bfd_is_com_section (bfd_get_section (sym)));
+ }
+--- bfd/elf32-mips.c.jj	2009-08-06 14:17:48.000000000 +0200
++++ bfd/elf32-mips.c	2009-08-06 14:41:52.000000000 +0200
+@@ -1450,7 +1450,7 @@ mips_elf_sym_is_global (bfd *abfd ATTRIB
+   if (SGI_COMPAT (abfd))
+     return (sym->flags & BSF_SECTION_SYM) == 0;
+   else
+-    return ((sym->flags & (BSF_GLOBAL | BSF_WEAK)) != 0
++    return ((sym->flags & (BSF_GLOBAL | BSF_WEAK | BSF_GNU_UNIQUE)) != 0
+ 	    || bfd_is_und_section (bfd_get_section (sym))
+ 	    || bfd_is_com_section (bfd_get_section (sym)));
+ }
+--- bfd/elfn32-mips.c.jj	2008-11-19 15:50:38.000000000 +0100
++++ bfd/elfn32-mips.c	2009-08-06 14:42:32.000000000 +0200
+@@ -2289,7 +2289,7 @@ mips_elf_sym_is_global (bfd *abfd ATTRIB
+   if (SGI_COMPAT (abfd))
+     return (sym->flags & BSF_SECTION_SYM) == 0;
+   else
+-    return ((sym->flags & (BSF_GLOBAL | BSF_WEAK)) != 0
++    return ((sym->flags & (BSF_GLOBAL | BSF_WEAK | BSF_GNU_UNIQUE)) != 0
+ 	    || bfd_is_und_section (bfd_get_section (sym))
+ 	    || bfd_is_com_section (bfd_get_section (sym)));
+ }

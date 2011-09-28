@@ -1,0 +1,21 @@
+2004-05-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* emulparams/elf64_ia64.sh (LIBPATH_SUFFIX): Use */lib64 paths on
+	ia64-linux if /lib64 tree is present.
+
+--- ../binutils-2.19.50.0.1.orig/ld/emulparams/elf64_ia64.sh	2008-11-21 16:45:00.000000000 +0000
++++ ld/emulparams/elf64_ia64.sh	2008-11-21 16:55:46.000000000 +0000
+@@ -38,3 +38,13 @@ OTHER_READONLY_SECTIONS="${OTHER_READONL
+ SMALL_DATA_CTOR=" "
+ SMALL_DATA_DTOR=" "
+ SHARABLE_SECTIONS=yes
++
++# For Linux modify the default library search path
++# to first include a 64-bit specific directory.
++case "$target" in
++  ia64*-linux*)
++    case "$EMULATION_NAME" in
++      *64*) test -d /lib64 && LIBPATH_SUFFIX=64 ;;
++    esac
++    ;;
++esac

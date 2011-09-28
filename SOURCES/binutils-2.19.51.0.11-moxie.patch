@@ -1,0 +1,17 @@
+--- ../binutils-2.19.51.0.11.orig/bfd/elf32-moxie.c	2009-07-14 11:42:48.000000000 +0100
++++ bfd/elf32-moxie.c	2009-07-14 12:28:32.000000000 +0100
+@@ -242,12 +242,12 @@ moxie_elf_relocate_section (bfd *output_
+ 	}
+       else
+ 	{
+-	  bfd_boolean unresolved_reloc, warned;
++	  bfd_boolean unresolved_reloc, warned, ignored;
+ 
+ 	  RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
+ 				   r_symndx, symtab_hdr, sym_hashes,
+ 				   h, sec, relocation,
+-				   unresolved_reloc, warned);
++				   unresolved_reloc, warned, ignored);
+ 
+ 	  name = h->root.root.string;
+ 	}

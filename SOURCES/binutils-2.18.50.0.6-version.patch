@@ -1,0 +1,36 @@
+--- bfd/Makefile.in.jj	2007-05-11 17:23:18.000000000 +0200
++++ bfd/Makefile.in	2007-06-12 12:28:10.000000000 +0200
+@@ -1540,12 +1540,12 @@ bfdver.h: $(srcdir)/version.h $(srcdir)/
+ 	report_bugs_to="\"$(REPORT_BUGS_TO)\"" ;\
+ 	if test "x$(RELEASE)" = x ; then \
+ 	  bfd_version_date=`sed -n -e 's/.*DATE //p' < $(srcdir)/version.h` ;\
+-	  bfd_version_string="\"$(VERSION).$${bfd_version_date}\"" ;\
+-	  bfd_soversion="$(VERSION).$${bfd_version_date}" ;\
++	  bfd_version_string="\"$(VERSION)-%{release} $${bfd_version_date}\"" ;\
++	  bfd_soversion="$(VERSION)-%{release}" ;\
+ 	fi ;\
+ 	sed -e "s,@bfd_version@,$$bfd_version," \
+ 	    -e "s,@bfd_version_string@,$$bfd_version_string," \
+-	    -e "s,@bfd_version_package@,$$bfd_version_package," \
++	    -e "s,@bfd_version_package@,\"version \"," \
+ 	    -e "s,@report_bugs_to@,$$report_bugs_to," \
+ 	    < $(srcdir)/version.h > $@; \
+ 	echo "$${bfd_soversion}" > libtool-soversion
+--- bfd/Makefile.am.jj	2007-05-11 17:23:18.000000000 +0200
++++ bfd/Makefile.am	2007-06-12 12:28:10.000000000 +0200
+@@ -973,12 +973,12 @@ bfdver.h: $(srcdir)/version.h $(srcdir)/
+ 	report_bugs_to="\"$(REPORT_BUGS_TO)\"" ;\
+ 	if test "x$(RELEASE)" = x ; then \
+ 	  bfd_version_date=`sed -n -e 's/.*DATE //p' < $(srcdir)/version.h` ;\
+-	  bfd_version_string="\"$(VERSION).$${bfd_version_date}\"" ;\
+-	  bfd_soversion="$(VERSION).$${bfd_version_date}" ;\
++	  bfd_version_string="\"$(VERSION)-%{release} $${bfd_version_date}\"" ;\
++	  bfd_soversion="$(VERSION)-%{release}" ;\
+ 	fi ;\
+ 	sed -e "s,@bfd_version@,$$bfd_version," \
+ 	    -e "s,@bfd_version_string@,$$bfd_version_string," \
+-	    -e "s,@bfd_version_package@,$$bfd_version_package," \
++	    -e "s,@bfd_version_package@,\"version \"," \
+ 	    -e "s,@report_bugs_to@,$$report_bugs_to," \
+ 	    < $(srcdir)/version.h > $@; \
+ 	echo "$${bfd_soversion}" > libtool-soversion

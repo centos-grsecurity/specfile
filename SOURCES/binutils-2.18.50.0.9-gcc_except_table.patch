@@ -1,0 +1,115 @@
+https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=461675
+http://sourceware.org/ml/binutils/2009-01/msg00412.html
+http://sourceware.org/ml/binutils-cvs/2009-02/msg00003.html
+
+bfd/
+2009-02-01  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* elf-eh-frame.c (REQUIRE_CLEARED_RELOCS) Remove.
+	(_bfd_elf_parse_eh_frame): Do not check relocations for removed FDEs.
+
+ld/testsuite/
+2009-02-01  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* ld-elf/eh-group2.s: New `.cfi_lsda' referencing `.gcc_except_table'.
+	* ld-elf/eh-group.exp: New test and conditional defininiton of `ELF64'.
+
+--- bfd/elf-eh-frame.c	2008/09/17 07:50:28	1.73
++++ bfd/elf-eh-frame.c	2009/02/01 12:05:25	1.74
+@@ -549,16 +549,6 @@
+ 	     < (bfd_size_type) ((buf) - ehbuf)))	\
+     cookie->rel++
+ 
+-#define REQUIRE_CLEARED_RELOCS(buf)			\
+-  while (cookie->rel < cookie->relend			\
+-	 && (cookie->rel->r_offset			\
+-	     < (bfd_size_type) ((buf) - ehbuf)))	\
+-    {							\
+-      REQUIRE (cookie->rel->r_info == 0);		\
+-      REQUIRE (cookie->rel->r_addend == 0);		\
+-      cookie->rel++;					\
+-    }
+-
+ #define GET_RELOC(buf)					\
+   ((cookie->rel < cookie->relend			\
+     && (cookie->rel->r_offset				\
+@@ -817,16 +807,16 @@
+ 
+ 	  buf = last_fde + 4 + hdr_length;
+ 
+-	  /* Cleared FDE?  The instructions will not be cleared but verify all
+-	     the relocation entries for them are cleared.  */
+-	  if (rsec == NULL)
+-	    {
+-	      REQUIRE_CLEARED_RELOCS (buf);
+-	    }
+-	  else
+-	    {
+-	      SKIP_RELOCS (buf);
+-	    }
++	  /* For NULL RSEC (cleared FDE belonging to a discarded section)
++	     the relocations are commonly cleared.  We do not sanity check if
++	     all these relocations are cleared as (1) relocations to
++	     .gcc_except_table will remain uncleared (they will get dropped
++	     with the drop of this unused FDE) and (2) BFD already safely drops
++	     relocations of any type to .eh_frame by
++	     elf_section_ignore_discarded_relocs.
++	     TODO: The .gcc_except_table entries should be also filtered as
++	     .eh_frame entries; or GCC could rather use COMDAT for them.  */
++	  SKIP_RELOCS (buf);
+ 	}
+ 
+       /* Try to interpret the CFA instructions and find the first
+--- ld/testsuite/ld-elf/eh-group.exp	2008/09/25 03:16:42	1.3
++++ ld/testsuite/ld-elf/eh-group.exp	2009/02/01 12:05:25	1.4
+@@ -40,12 +40,28 @@
+     return
+ }
+ 
+-set build_tests_ld {
+-  {"Build eh-group1.o"
+-   "-r" ""
+-   {eh-group1.s eh-group2.s} {} "eh-group.o"}
++# alpha-linux-gnu does not support 64-bit relocations:
++#   relocation truncated to fit: REFLONG against `.gcc_except_table'
++# arm-eabi does not support 64-bit relocations:
++#   bad relocation fixup type (1)
++set testname "Guess the target size from eh-group1size.o"
++if [ld_assemble $as "$srcdir/$subdir/eh-group1.s" "tmpdir/eh-group1size.o"] {
++    pass $testname
++} else {
++    fail $testname
+ }
+ 
++set as_options ""
++if [is_elf64 "tmpdir/eh-group1size.o"] {
++    set as_options "$as_options --defsym ELF64=1"
++}
++
++set build_tests_ld [list			\
++  [list "Build eh-group1.o"			\
++   "-r" "$as_options"				\
++   {eh-group1.s eh-group2.s} {} "eh-group.o"]	\
++]
++
+ run_ld_link_tests $build_tests_ld
+ 
+ set testname "Link eh-group.o to eh-group"
+--- ld/testsuite/ld-elf/eh-group2.s	2008/09/20 08:42:53	1.2
++++ ld/testsuite/ld-elf/eh-group2.s	2009/02/01 12:05:25	1.3
+@@ -1,4 +1,15 @@
+ 	.section	sect, "axG", %progbits, sectgroup, comdat
+ 	.cfi_startproc
++# Test intention is that LSDA must be provided by the discarded FDE.
++# DW_EH_PE_udata8 = 4
++# DW_EH_PE_udata4 = 3
++	.ifdef		ELF64
++	.cfi_lsda 4, lsda
++	.else
++	.cfi_lsda 3, lsda
++	.endif
+ 	.skip 16
+ 	.cfi_endproc
++
++	.section	.gcc_except_table, "a", %progbits
++lsda:

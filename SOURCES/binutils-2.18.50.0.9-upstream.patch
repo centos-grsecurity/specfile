@@ -1,0 +1,536 @@
+http://sourceware.org/ml/binutils-cvs/2008-09/msg00088.html
+http://sourceware.org/ml/binutils/2008-09/msg00125.html
+
+2008-09-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Fix testcases compilation failures due to unused variables.
+	* ld-elfcomm/common1b.c (dummy1): Mark the variable for GCC as USED.
+	* ld-shared/main.c (main): Move the P variable only to the places where
+	it is used.
+
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elfcomm/common1b.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -r1.1 -r1.2
+--- ld/testsuite/ld-elfcomm/common1b.c	2003/04/15 09:38:10	1.1
++++ ld/testsuite/ld-elfcomm/common1b.c	2008/09/17 07:43:49	1.2
+@@ -1,3 +1,7 @@
+-static char dummy1 = 'X';
++static
++#if     __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
++  __attribute__((__used__))
++#endif  /* __GNUC__ */
++  char dummy1 = 'X';
+ char foo1 [] = "Aligned at odd byte.";
+ char foo2 [4];
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-shared/main.c,v
+retrieving revision 1.3
+retrieving revision 1.4
+diff -u -r1.3 -r1.4
+--- ld/testsuite/ld-shared/main.c	2001/06/06 21:03:59	1.3
++++ ld/testsuite/ld-shared/main.c	2008/09/17 07:43:49	1.4
+@@ -38,8 +38,6 @@
+ int
+ main ()
+ {
+-  int (*p) ();
+-
+   printf ("mainvar == %d\n", mainvar);
+   printf ("overriddenvar == %d\n", overriddenvar);
+   printf ("shlibvar1 == %d\n", shlibvar1);
+@@ -62,21 +60,29 @@
+   printf ("shlib_checkfunptr2 (main_called) == %d\n",
+ 	  shlib_checkfunptr2 (main_called));
+ #endif
+-  p = shlib_getfunptr1 ();
+-  printf ("shlib_getfunptr1 () ");
+-  if (p == shlib_shlibvar1)
+-    printf ("==");
+-  else
+-    printf ("!=");
+-  printf (" shlib_shlibvar1\n");
++  {
++    int (*p) ();
++
++    p = shlib_getfunptr1 ();
++    printf ("shlib_getfunptr1 () ");
++    if (p == shlib_shlibvar1)
++      printf ("==");
++    else
++      printf ("!=");
++    printf (" shlib_shlibvar1\n");
++  }
+ #ifndef XCOFF_TEST
+-  p = shlib_getfunptr2 ();
+-  printf ("shlib_getfunptr2 () ");
+-  if (p == main_called)
+-    printf ("==");
+-  else
+-    printf ("!=");
+-  printf (" main_called\n");
++  {
++    int (*p) ();
++
++    p = shlib_getfunptr2 ();
++    printf ("shlib_getfunptr2 () ");
++    if (p == main_called)
++      printf ("==");
++    else
++      printf ("!=");
++    printf (" main_called\n");
++  }
+ #endif
+ #endif
+   printf ("shlib_check () == %d\n", shlib_check ());
+
+
+
+http://sourceware.org/ml/binutils-cvs/2008-09/msg00089.html
+http://sourceware.org/ml/binutils/2008-09/msg00124.html
+
+bfd/
+2008-09-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	PR 6893 - Do not consider FDEs for discarded sections as invalid.
+	* elf-eh-frame.c (_bfd_elf_parse_eh_frame): New REQUIRE_CLEARED_RELOCS.
+	Consider FDEs with cleared relocations as valid and ignorable.
+
+binutils/
+2008-09-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Suppress warnings on NONE relocations to discarded sections.
+	* readelf.c (is_none_reloc): New function.
+	(debug_apply_relocations): Ignore is_none_reloc() relocations.
+
+testsuite/
+2008-09-17  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* ld-elf/eh-group.exp, ld-elf/eh-group1.s, ld-elf/eh-group2.s: New test.
+
+===================================================================
+RCS file: /cvs/src/src/bfd/elf-eh-frame.c,v
+retrieving revision 1.72
+retrieving revision 1.73
+diff -u -r1.72 -r1.73
+--- bfd/elf-eh-frame.c	2008/08/24 21:43:00	1.72
++++ bfd/elf-eh-frame.c	2008/09/17 07:50:28	1.73
+@@ -549,6 +549,16 @@
+ 	     < (bfd_size_type) ((buf) - ehbuf)))	\
+     cookie->rel++
+ 
++#define REQUIRE_CLEARED_RELOCS(buf)			\
++  while (cookie->rel < cookie->relend			\
++	 && (cookie->rel->r_offset			\
++	     < (bfd_size_type) ((buf) - ehbuf)))	\
++    {							\
++      REQUIRE (cookie->rel->r_info == 0);		\
++      REQUIRE (cookie->rel->r_addend == 0);		\
++      cookie->rel++;					\
++    }
++
+ #define GET_RELOC(buf)					\
+   ((cookie->rel < cookie->relend			\
+     && (cookie->rel->r_offset				\
+@@ -766,9 +776,14 @@
+ 
+ 	  /* Chain together the FDEs for each section.  */
+ 	  rsec = _bfd_elf_gc_mark_rsec (info, sec, gc_mark_hook, cookie);
+-	  REQUIRE (rsec && rsec->owner == abfd);
+-	  this_inf->u.fde.next_for_section = elf_fde_list (rsec);
+-	  elf_fde_list (rsec) = this_inf;
++	  /* RSEC will be NULL if FDE was cleared out as it was belonging to
++	     a discarded SHT_GROUP.  */
++	  if (rsec)
++	    {
++	      REQUIRE (rsec->owner == abfd);
++	      this_inf->u.fde.next_for_section = elf_fde_list (rsec);
++	      elf_fde_list (rsec) = this_inf;
++	    }
+ 
+ 	  /* Skip the initial location and address range.  */
+ 	  start = buf;
+@@ -801,7 +816,17 @@
+ 	  insns = buf;
+ 
+ 	  buf = last_fde + 4 + hdr_length;
+-	  SKIP_RELOCS (buf);
++
++	  /* Cleared FDE?  The instructions will not be cleared but verify all
++	     the relocation entries for them are cleared.  */
++	  if (rsec == NULL)
++	    {
++	      REQUIRE_CLEARED_RELOCS (buf);
++	    }
++	  else
++	    {
++	      SKIP_RELOCS (buf);
++	    }
+ 	}
+ 
+       /* Try to interpret the CFA instructions and find the first
+===================================================================
+RCS file: /cvs/src/src/binutils/readelf.c,v
+retrieving revision 1.425
+retrieving revision 1.426
+diff -u -r1.425 -r1.426
+--- binutils/readelf.c	2008/09/05 14:49:05	1.425
++++ binutils/readelf.c	2008/09/17 07:50:28	1.426
+@@ -8284,6 +8284,53 @@
+     }
+ }
+ 
++/* Returns TRUE iff RELOC_TYPE is a NONE relocation used for discarded
++   relocation entries (possibly formerly used for SHT_GROUP sections).  */
++
++static bfd_boolean
++is_none_reloc (unsigned int reloc_type)
++{
++  switch (elf_header.e_machine)
++    {
++    case EM_68K:
++      return reloc_type == 0; /* R_68K_NONE.  */
++    case EM_386:
++      return reloc_type == 0; /* R_386_NONE.  */
++    case EM_SPARC32PLUS:
++    case EM_SPARCV9:
++    case EM_SPARC:
++      return reloc_type == 0; /* R_SPARC_NONE.  */
++    case EM_MIPS:
++      return reloc_type == 0; /* R_MIPS_NONE.  */
++    case EM_PARISC:
++      return reloc_type == 0; /* R_PARISC_NONE.  */
++    case EM_ALPHA:
++      return reloc_type == 0; /* R_ALPHA_NONE.  */
++    case EM_PPC:
++      return reloc_type == 0; /* R_PPC_NONE.  */
++    case EM_PPC64:
++      return reloc_type == 0; /* R_PPC64_NONE.  */
++    case EM_ARM:
++      return reloc_type == 0; /* R_ARM_NONE.  */
++    case EM_IA_64:
++      return reloc_type == 0; /* R_IA64_NONE.  */
++    case EM_SH:
++      return reloc_type == 0; /* R_SH_NONE.  */
++    case EM_S390_OLD:
++    case EM_S390:
++      return reloc_type == 0; /* R_390_NONE.  */
++    case EM_CRIS:
++      return reloc_type == 0; /* R_CRIS_NONE.  */
++    case EM_X86_64:
++      return reloc_type == 0; /* R_X86_64_NONE.  */
++    case EM_MN10300:
++      return reloc_type == 0; /* R_MN10300_NONE.  */
++    case EM_M32R:
++      return reloc_type == 0; /* R_M32R_NONE.  */
++    }
++  return FALSE;
++}
++
+ /* Uncompresses a section that was compressed using zlib, in place.
+  * This is a copy of bfd_uncompress_section_contents, in bfd/compress.c  */
+ 
+@@ -8419,6 +8466,9 @@
+ 
+ 	  reloc_type = get_reloc_type (rp->r_info);
+ 
++	  if (is_none_reloc (reloc_type))
++	    continue;
++
+ 	  if (is_32bit_abs_reloc (reloc_type)
+ 	      || is_32bit_pcrel_reloc (reloc_type))
+ 	    reloc_size = 4;
+/cvs/src/src/ld/testsuite/ld-elf/eh-group.exp,v  -->  standard output
+revision 1.1
+--- ld/testsuite/ld-elf/eh-group.exp
++++ ld/testsuite/ld-elf/eh-group.exp	2008-09-21 22:56:18.321559000 +0000
+@@ -0,0 +1,51 @@
++# Expect script for .eh_frame entries to a removed section.
++#   Copyright 2008  Free Software Foundation, Inc.
++#
++# This file is part of the GNU Binutils.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston,
++# MA 02110-1301, USA.
++#
++
++#
++# Written by Jan Kratochvil (jan.kratochvil@redhat.com)
++#
++# .eh_frame with relocations to a removed (group) section did result to:
++# error in tmpdir/eh-group.o(.eh_frame); no .eh_frame_hdr table will be created.
++# The purpose of this test is to merge two .o files with -r and then link this
++# merged file (containing a discarded R_X86_64_NONE relocation) to the final
++# executable trying to create .eh_frame_hdr.  It needs a separate .exp file due
++# to the requirement of two `ld' runs.
++
++# Exclude non-ELF targets.
++
++if ![is_elf_format] {
++    return
++}
++
++set build_tests_ld {
++  {"Build eh-group1.o"
++   "-r" ""
++   {eh-group1.s eh-group2.s} {} "eh-group.o"}
++}
++
++run_ld_link_tests $build_tests_ld
++
++set testname "Link eh-group.o to eh-group"
++if [ld_simple_link $ld "tmpdir/eh-group" "-e _start tmpdir/eh-group.o"] {
++    pass $testname
++} else {
++    fail $testname
++}
+/cvs/src/src/ld/testsuite/ld-elf/eh-group1.s,v  -->  standard output
+revision 1.1
+--- ld/testsuite/ld-elf/eh-group1.s
++++ ld/testsuite/ld-elf/eh-group1.s	2008-09-21 22:56:19.003793000 +0000
+@@ -0,0 +1,6 @@
++	.section	sect, "axG", @progbits, sectgroup, comdat
++	.global	_start
++_start:
++	.cfi_startproc
++	.skip 16
++	.cfi_endproc
+/cvs/src/src/ld/testsuite/ld-elf/eh-group2.s,v  -->  standard output
+revision 1.1
+--- ld/testsuite/ld-elf/eh-group2.s
++++ ld/testsuite/ld-elf/eh-group2.s	2008-09-21 22:56:19.663297000 +0000
+@@ -0,0 +1,4 @@
++	.section	sect, "axG", @progbits, sectgroup, comdat
++	.cfi_startproc
++	.skip 16
++	.cfi_endproc
+
+http://sourceware.org/ml/binutils-cvs/2008-09/msg00107.html
+http://sourceware.org/ml/binutils/2008-09/msg00145.html
+
+testsuite/
+2008-09-20  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	Provide virtual target "cfi" for targets supporting CFI.
+	* ld-elf/eh-frame-hdr.d: Replace target and xfail statements by single
+	`target: cfi'.
+	* ld-elf/eh-group.exp: Call check_as_cfi instead of is_elf_format.
+	* ld-elf/eh-group1.s, elf/eh-group2.s: Use more compatible section
+	flags prefix '%'.
+	* ld-elf/eh5.d: Replace target statement by `target: cfi' with an Alpha
+	exception.  Relax the `Code alignment factor' matching.
+	* lib/ld-lib.exp: Rename istarget as istarget_ld.
+	(istarget, check_as_cfi): New procedure.
+	(run_dump_test): New comment for the virtual target `cfi'.
+
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elf/eh-frame-hdr.d,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -r1.1 -r1.2
+--- ld/testsuite/ld-elf/eh-frame-hdr.d	2006/12/04 08:57:09	1.1
++++ ld/testsuite/ld-elf/eh-frame-hdr.d	2008/09/20 08:42:53	1.2
+@@ -1,17 +1,7 @@
+ #source: eh-frame-hdr.s
+ #ld: -e _start --eh-frame-hdr
+ #objdump: -hw
+-#target: alpha*-*-*
+-#target: arm*-*-*
+-#target: i?86-*-*
+-#target: m68k-*-*
+-#target: mips*-*-*
+-#target: powerpc*-*-*
+-#target: s390*-*-*
+-#target: sh*-*-*
+-#xfail: sh*l*-*-*
+-#target: sparc*-*-*
+-#target: x86_64-*-*
++#target: cfi
+ #...
+   [0-9] .eh_frame_hdr 0*[12][048c] .*
+ #pass
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elf/eh-group.exp,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -r1.1 -r1.2
+--- ld/testsuite/ld-elf/eh-group.exp	2008/09/17 07:50:29	1.1
++++ ld/testsuite/ld-elf/eh-group.exp	2008/09/20 08:42:53	1.2
+@@ -29,9 +29,9 @@
+ # executable trying to create .eh_frame_hdr.  It needs a separate .exp file due
+ # to the requirement of two `ld' runs.
+ 
+-# Exclude non-ELF targets.
++# Exclude non-CFI (such as ia64) targets.
+ 
+-if ![is_elf_format] {
++if {![check_as_cfi]} {
+     return
+ }
+ 
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elf/eh-group1.s,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -r1.1 -r1.2
+--- ld/testsuite/ld-elf/eh-group1.s	2008/09/17 07:50:29	1.1
++++ ld/testsuite/ld-elf/eh-group1.s	2008/09/20 08:42:53	1.2
+@@ -1,4 +1,4 @@
+-	.section	sect, "axG", @progbits, sectgroup, comdat
++	.section	sect, "axG", %progbits, sectgroup, comdat
+ 	.global	_start
+ _start:
+ 	.cfi_startproc
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elf/eh-group2.s,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -r1.1 -r1.2
+--- ld/testsuite/ld-elf/eh-group2.s	2008/09/17 07:50:29	1.1
++++ ld/testsuite/ld-elf/eh-group2.s	2008/09/20 08:42:53	1.2
+@@ -1,4 +1,4 @@
+-	.section	sect, "axG", @progbits, sectgroup, comdat
++	.section	sect, "axG", %progbits, sectgroup, comdat
+ 	.cfi_startproc
+ 	.skip 16
+ 	.cfi_endproc
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/ld-elf/eh5.d,v
+retrieving revision 1.2
+retrieving revision 1.3
+diff -u -r1.2 -r1.3
+--- ld/testsuite/ld-elf/eh5.d	2008/01/28 15:15:32	1.2
++++ ld/testsuite/ld-elf/eh5.d	2008/09/20 08:42:53	1.3
+@@ -3,14 +3,15 @@
+ #source: eh5b.s
+ #ld:
+ #readelf: -wf
+-#target: x86_64-*-* i?86-*-*
++#target: cfi
++#notarget: alpha*
+ 
+ The section .eh_frame contains:
+ 
+ 00000000 0000001[04] 00000000 CIE
+   Version:               1
+   Augmentation:          "zR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     1b
+@@ -29,7 +30,7 @@
+ 000000(2c|30) 00000014 00000000 CIE
+   Version:               1
+   Augmentation:          "zPR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     03 .. .. .. .. 1b
+@@ -53,7 +54,7 @@
+ 0000007[48] 0000001[8c] 00000000 CIE
+   Version:               1
+   Augmentation:          "zPLR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     03 .. .. .. .. 0c 1b
+@@ -74,7 +75,7 @@
+ 000000b[08] 0000001[04] 00000000 CIE
+   Version:               1
+   Augmentation:          "zR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     1b
+@@ -89,7 +90,7 @@
+ 000000[de]8 00000014 00000000 CIE
+   Version:               1
+   Augmentation:          "zPR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     03 .. .. .. .. 1b
+@@ -111,7 +112,7 @@
+ 000001(1c|30) 0000001[8c] 00000000 CIE
+   Version:               1
+   Augmentation:          "zPLR"
+-  Code alignment factor: 1
++  Code alignment factor: .*
+   Data alignment factor: .*
+   Return address column: .*
+   Augmentation data:     03 .. .. .. .. 0c 1b
+===================================================================
+RCS file: /cvs/src/src/ld/testsuite/lib/ld-lib.exp,v
+retrieving revision 1.54
+retrieving revision 1.55
+diff -u -r1.54 -r1.55
+--- ld/testsuite/lib/ld-lib.exp	2008/02/18 11:04:09	1.54
++++ ld/testsuite/lib/ld-lib.exp	2008/09/20 08:42:53	1.55
+@@ -598,7 +598,8 @@
+ #
+ #   target: TARGET
+ #       Only run the test for TARGET.  This may occur more than once; the
+-#       target being tested must match at least one.
++#       target being tested must match at least one.  You may provide target
++#       name "cfi" for any target supporting the CFI statements.
+ #
+ #   notarget: TARGET
+ #       Do not run the test for TARGET.  This may occur more than once;
+@@ -1569,3 +1570,39 @@
+     }
+     return $gc_sections_available_saved
+ }
++
++# Check if the assembler supports CFI statements.
++
++proc check_as_cfi { } {
++    global check_as_cfi_result
++    global as
++    if [info exists check_as_cfi_result] {
++	return $check_as_cfi_result
++    }
++    set as_file "tmpdir/check_as_cfi.s"
++    set as_fh [open $as_file w 0666]
++    puts $as_fh "# Generated file. DO NOT EDIT"
++    puts $as_fh "\t.cfi_startproc"
++    puts $as_fh "\t.cfi_endproc"
++    close $as_fh
++    remote_download host $as_file
++    verbose -log "Checking CFI support:"
++    rename "perror" "check_as_cfi_perror"
++    proc perror { args } { }
++    set success [ld_assemble $as $as_file "/dev/null"]
++    rename "perror" ""
++    rename "check_as_cfi_perror" "perror"
++    #remote_file host delete $as_file
++    set check_as_cfi_result $success
++    return $success
++}
++
++# Provide virtual target "cfi" for targets supporting CFI.
++
++rename "istarget" "istarget_ld"
++proc istarget { target } {
++    if {$target == "cfi"} {
++	return [check_as_cfi]
++    }
++    return [istarget_ld $target]
++}

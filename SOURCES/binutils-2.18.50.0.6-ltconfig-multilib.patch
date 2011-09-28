@@ -1,0 +1,262 @@
+--- binutils/configure.jj	2007-06-18 13:29:28.000000000 -0400
++++ binutils/configure	2007-06-27 13:55:07.000000000 -0400
+@@ -8990,10 +8990,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- opcodes/configure.jj	2007-06-18 13:29:29.000000000 -0400
++++ opcodes/configure	2007-06-27 13:55:08.000000000 -0400
+@@ -8420,10 +8420,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- gprof/configure.jj	2007-06-18 13:29:29.000000000 -0400
++++ gprof/configure	2007-06-27 13:55:08.000000000 -0400
+@@ -8250,10 +8250,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- ld/configure.jj	2007-06-18 13:29:29.000000000 -0400
++++ ld/configure	2007-06-27 13:55:08.000000000 -0400
+@@ -8253,10 +8253,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- gas/configure.jj	2007-06-18 13:29:28.000000000 -0400
++++ gas/configure	2007-06-27 13:55:08.000000000 -0400
+@@ -8252,10 +8252,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- bfd/configure.jj	2007-06-18 13:29:28.000000000 -0400
++++ bfd/configure	2007-06-27 13:55:08.000000000 -0400
+@@ -9156,10 +9156,34 @@ rm -f conftest.err conftest.$ac_objext \
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \$2)); skip = 1; } { if (!skip) print \$0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on
+--- libtool.m4.jj	2007-06-18 13:29:28.000000000 -0400
++++ libtool.m4	2007-06-27 13:55:08.000000000 -0400
+@@ -2337,10 +2337,30 @@ linux* | k*bsd*-gnu)
+   # before this can be enabled.
+   hardcode_into_libs=yes
+ 
++  # find out which ABI we are using
++  libsuff=
++  case "$host_cpu" in
++  x86_64*|s390*|powerpc*|ppc*|sparc*)
++    echo 'int i;' > conftest.$ac_ext
++    if AC_TRY_EVAL(ac_compile); then
++      case `/usr/bin/file conftest.$ac_objext` in
++      *64-bit*)
++        libsuff=64
++        if test x"$sys_lib_search_path_spec" = x"/lib /usr/lib /usr/local/lib"; then
++          sys_lib_search_path_spec="/lib${libsuff} /usr/lib${libsuff} /usr/local/lib${libsuff}"
++        fi
++        sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff}"
++        ;;
++      esac
++    fi
++    rm -rf conftest*
++    ;;
++  esac
++
+   # Append ld.so.conf contents to the search path
+   if test -f /etc/ld.so.conf; then
+     lt_ld_extra=`awk '/^include / { system(sprintf("cd /etc; cat %s 2>/dev/null", \[$]2)); skip = 1; } { if (!skip) print \[$]0; skip = 0; }' < /etc/ld.so.conf | $SED -e 's/#.*//;s/[:,	]/ /g;s/=[^=]*$//;s/=[^= ]* / /g;/^$/d' | tr '\n' ' '`
+-    sys_lib_dlsearch_path_spec="/lib /usr/lib $lt_ld_extra"
++    sys_lib_dlsearch_path_spec="/lib${libsuff} /usr/lib${libsuff} $lt_ld_extra"
+   fi
+ 
+   # We used to test for /lib/ld.so.1 and disable shared libraries on

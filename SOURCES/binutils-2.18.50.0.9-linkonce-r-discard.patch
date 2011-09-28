@@ -1,0 +1,77 @@
+http://sourceware.org/ml/binutils/2008-10/msg00235.html
+
+2008-10-26  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* elflink.c (elf_link_input_bfd): Handle pre-COMDAT g++-3.4 relocations
+	in `.gnu.linkonce.r.*' referencing its `.gnu.linkonce.t.*'.
+
+2008-10-26  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* ld-elf/linkoncerdiff.d, ld-elf/linkoncerdiff1.s,
+	ld-elf/linkoncerdiff2.s: New.
+
+--- bfd/elflink.c	2008-10-22 21:08:20.000000000 +0200
++++ bfd/elflink.c	2008-10-29 18:18:43.000000000 +0100
+@@ -7649,7 +7649,23 @@ elf_link_input_bfd (struct elf_final_lin
+ 		  if ((sec = *ps) != NULL && elf_discarded_section (sec))
+ 		    {
+ 		      BFD_ASSERT (r_symndx != 0);
+-		      if (action_discarded & COMPLAIN)
++
++		      /* Do not complain on unresolved relocations in
++			 `.gnu.linkonce.r.F' referencing its discarded
++			 `.gnu.linkonce.t.F' counterpart - g++-3.4 specific as
++			 g++-4.x is using COMDAT groups (without the
++			 `.gnu.linkonce' prefix) instead.  `.gnu.linkonce.r.*'
++			 were the `.rodata' part of its matching
++			 `.gnu.linkonce.t.*'.  If `.gnu.linkonce.r.F' is not
++			 discarded with its `.gnu.linkonce.t.F' being discarded
++			 means we chose one-only `.gnu.linkonce.t.F' section
++			 from an other file not needing any `.gnu.linkonce.r.F'
++			 and thus `.gnu.linkonce.r.F' could be in fact also
++			 discarded.  */
++		      if ((action_discarded & COMPLAIN)
++		          && !(CONST_STRNEQ (o->name, ".gnu.linkonce.r.")
++			       && CONST_STRNEQ (sec->name, ".gnu.linkonce.t.")
++			       && strcmp (o->name + 16, sec->name + 16) == 0))
+ 			(*finfo->info->callbacks->einfo)
+ 			  (_("%X`%s' referenced in section `%A' of %B: "
+ 			     "defined in discarded section `%A' of %B\n"),
+--- ld/testsuite/ld-elf/linkoncerdiff.d	2008-10-22 21:16:04.000000000 +0200
++++ ld/testsuite/ld-elf/linkoncerdiff.d	2008-10-29 18:17:07.000000000 +0100
+@@ -0,0 +1,5 @@
++#source: linkoncerdiff1.s
++#source: linkoncerdiff2.s
++#notarget: arc* d30v* dlx* openrisc* or32* pj*
++#ld: -r
++#error: `.gnu.linkonce.t.bar' referenced in section `.gnu.linkonce.r.foo' of tmpdir/dump1.o: defined in discarded section `.gnu.linkonce.t.bar' of tmpdir/dump1.o
+--- ld/testsuite/ld-elf/linkoncerdiff1.s	2008-10-22 21:16:04.000000000 +0200
++++ ld/testsuite/ld-elf/linkoncerdiff1.s	2008-10-29 18:17:07.000000000 +0100
+@@ -0,0 +1,7 @@
++	.section	.gnu.linkonce.t.foo, "a", %progbits
++	.globl	symfoo
++symfoo:
++
++	.section	.gnu.linkonce.t.bar, "a", %progbits
++	.globl	symbar
++symbar:
+--- ld/testsuite/ld-elf/linkoncerdiff2.s	2008-10-22 21:16:04.000000000 +0200
++++ ld/testsuite/ld-elf/linkoncerdiff2.s	2008-10-29 18:17:07.000000000 +0100
+@@ -0,0 +1,17 @@
++	.section	.gnu.linkonce.t.foo, "a", %progbits
++1:
++	.globl	symfoo
++symfoo:
++	.long	0
++
++	.section	.gnu.linkonce.t.bar, "a", %progbits
++2:
++	.globl	symbar
++symbar:
++	.long	0
++
++	.section	.gnu.linkonce.r.foo, "a", %progbits
++	.long	1b
++	.long	symfoo
++	.long	2b
++	.long	symbar

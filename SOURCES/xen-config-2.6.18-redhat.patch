@@ -1,0 +1,22 @@
+--- config/x86_32.mk
++++ config-redhat/x86_32.mk
+@@ -7,7 +7,7 @@ CONFIG_MIGRATE := y
+ CONFIG_XCUTILS := y
+ CONFIG_IOEMU := y
+ 
+-CFLAGS += -m32 -march=i686
++CFLAGS += -m32 -march=i686 -minline-all-stringops
+ LIBDIR := lib
+ 
+ # Use only if calling $(LD) directly.
+--- config/x86_64.mk
++++ config-redhat/x86_64.mk
+@@ -8,7 +8,7 @@ CONFIG_MIGRATE := y
+ CONFIG_XCUTILS := y
+ CONFIG_IOEMU := y
+ 
+-CFLAGS += -m64
++CFLAGS += -m64 -minline-all-stringops
+ LIBDIR = $(LIB64DIR)
+ 
+ # Use only if calling $(LD) directly.

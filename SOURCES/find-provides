@@ -40,5 +40,5 @@ if not (os.path.isfile(kabideps)):
 	sys.stderr.write(sys.argv[0] + ": cannot locate kabideps file: " + kabideps + "\n")
 	sys.exit(1)
 
-sys.stderr.write(sys.argv[0] + ": processing kABI: " + kabideps)
+sys.stderr.write(sys.argv[0] + ": processing kABI: " + kabideps + "\n")
 os.system("cat " + kabideps)

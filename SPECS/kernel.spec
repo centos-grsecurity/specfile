@@ -742,7 +742,7 @@ for i in *.config
 do
   mv $i .config
   Arch=`head -1 .config | cut -b 3-`
-  make ARCH=$Arch nonint_oldconfig > /dev/null
+  make ARCH=$Arch oldconfig 
   echo "# $Arch" > configs/$i
   cat .config >> configs/$i
 done
@@ -815,7 +815,7 @@ BuildKernel() {
       popd
     fi
 
-    make -s ARCH=$Arch nonint_oldconfig > /dev/null
+    make -s ARCH=$Arch oldconfig
     make -s ARCH=$Arch %{?_smp_mflags} $MakeTarget
     if [ "$Arch" != "s390" -o "$Flavour" != "kdump" ]; then
       make -s ARCH=$Arch %{?_smp_mflags} modules || exit 1

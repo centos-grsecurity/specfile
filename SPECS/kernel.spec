@@ -41,7 +41,9 @@ Summary: The Linux kernel (the core of the Linux operating system)
 %define with_dbgonly   %{?_with_dbgonly:      1} %{?!_with_dbgonly:      0}
 
 # Whether to apply the Xen patches -- leave this enabled.
-%define includexen 1
+%define includexen 0
+#disable xen
+%define with_xen 0
 
 # Set debugbuildsenabled to 1 for production (build separate debug kernels)
 #  and 0 for rawhide (all kernels are debug kernels).
@@ -71,7 +73,7 @@ Summary: The Linux kernel (the core of the Linux operating system)
 # that the kernel isn't the stock distribution kernel, for example,
 # by setting the define to ".local" or ".bz123456"
 #
-#% define buildid
+% define buildid ".grsec1"
 #
 %define sublevel 18
 %define stablerev 4
@@ -421,12 +423,14 @@ Source129: Module.kabi_x86_64xen
 
 Source130: check-kabi
 
-Patch1: kernel-2.6.18-redhat.patch
-Patch2: xen-config-2.6.18-redhat.patch
-Patch3: xen-2.6.18-redhat.patch
+#nnewton finish
+#Patch1: grsecblahblah
+#Patch1: kernel-2.6.18-redhat.patch
+#Patch2: xen-config-2.6.18-redhat.patch
+#Patch3: xen-2.6.18-redhat.patch
 
 # empty final patch file to facilitate testing of kernel patches
-Patch99999: linux-kernel-test.patch
+#Patch99999: linux-kernel-test.patch
 
 BuildRoot: %{_tmppath}/kernel-%{KVERREL}-root
 
@@ -679,7 +683,7 @@ cp -rl vanilla-%{kversion} linux-%{KVERREL}.%{_target_cpu}
 
 cd linux-%{KVERREL}.%{_target_cpu}
 
-%patch1 -p1 -E
+#%patch1 -p1 -E
 
 # conditionally applied test patch for debugging convenience
 %if %([ -s %{PATCH99999} ] && echo 1 || echo 0)
@@ -755,25 +759,6 @@ done
 
 # get rid of unwanted files resulting from patch fuzz
 find . \( -name "*.orig" -o -name "*~" \) -exec rm -f {} \; >/dev/null
-
-
-# Unpack the Xen tarball.
-%if %{includexen}
-%if %{include_xen_tarball}
-cp %{SOURCE2} .
-if [ -d xen%{?XEN_VER} ]; then
-  rm -rf xen%{?XEN_VER}
-fi
-%setup -D -T -q -n %{name}-%{version} -a1
-
-cd config
-%patch2 -p1
-cd ..
-cd xen
-%patch3 -p1 -E
-cd ..
-%endif
-%endif
 
 
 ###
@@ -972,11 +957,6 @@ BuildKernel() {
       ln -sf ../../../include/asm-ppc* asm
       popd
     fi
-%if %{includexen}
-%if %{with_xen}
-    cp -a xen $RPM_BUILD_ROOT/lib/modules/$KernelVer/build/include
-%endif
-%endif
 
     # Make sure the Makefile and version.h have a matching timestamp so that
     # external modules can be built
@@ -1057,17 +1037,6 @@ BuildKernel() {
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/boot
 
-%if %{includexen}
-%if %{with_xen}
-  cd xen%{?XEN_VER}
-  mkdir -p $RPM_BUILD_ROOT/%{image_install_path} $RPM_BUILD_ROOT/boot
-  make %{?_smp_mflags} %{xen_flags}
-  install -m 644 xen.gz $RPM_BUILD_ROOT/%{image_install_path}/xen.gz-%{KVERREL}
-  install -m 755 xen-syms $RPM_BUILD_ROOT/boot/xen-syms-%{KVERREL}
-  cd ..
-%endif
-%endif
-
 cd linux-%{KVERREL}.%{_target_cpu}
 
 %if %{with_up}
@@ -1076,12 +1045,6 @@ BuildKernel %make_target %kernel_image
 
 %if %{with_pae}
 BuildKernel %make_target %kernel_image PAE
-%endif
-
-%if %{includexen}
-%if %{with_xen}
-BuildKernel %xen_target %xen_image xen
-%endif
 %endif
 
 %if %{with_kdump}
@@ -1141,22 +1104,6 @@ cat > $RPM_BUILD_ROOT/etc/modprobe.d/blacklist-firewire << \EOF
 # Comment out the next line to enable the firewire drivers
 blacklist firewire-ohci
 EOF
-%endif
-
-%if %{includexen}
-%if %{with_xen}
-mkdir -p $RPM_BUILD_ROOT/etc/ld.so.conf.d
-rm -f $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
-cat > $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf <<\EOF
-# This directive teaches ldconfig to search in nosegneg subdirectories
-# and cache the DSOs there with extra bit 0 set in their hwcap match
-# fields.  In Xen guest kernels, the vDSO tells the dynamic linker to
-# search in nosegneg subdirectories and to match this extra hwcap bit
-# in the ld.so.cache file.
-hwcap 0 nosegneg
-EOF
-chmod 444 $RPM_BUILD_ROOT/etc/ld.so.conf.d/kernelcap-%{KVERREL}.conf
-%endif
 %endif
 
 %if %{with_doc}
